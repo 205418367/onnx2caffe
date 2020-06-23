@@ -243,9 +243,7 @@ def _convert_Softmax(node, graph, err):
     input_name_list = [str(i) for i in node.inputs]
     output_name = str(node.outputs[0])
     axis = node.attrs.get("axis", 1)
-
     layer = myf('Softmax', node_name, input_name_list, [output_name], axis=axis)
-
     return layer
 
 def _convert_pool(node, graph, err):
@@ -254,15 +252,20 @@ def _convert_pool(node, graph, err):
     output_name = str(node.outputs[0])
     if node.op_type.endswith("MaxPool"):
         pool_type = P.Pooling.MAX
-    elif node.op_type.endswith("AveragePool"):
+    elif node.op_type == "AveragePool":
         pool_type = P.Pooling.AVE
+    elif node.op_type.endswith("GlobalAveragePool"):
+        pool_type = P.Pooling.AVE
+        layer = myf("Pooling", node_name, [input_name], [output_name], 
+                    pooling_param=dict(pool=pool_type, global_pooling=True))
+        graph.channel_dims[output_name] = graph.channel_dims[input_name]
+        return layer
     else:
         return err.unsupported_op_configuration(node, "Unsupported pool type")
 
     kernel_shape = node.attrs["kernel_shape"]
     strides = node.attrs.get('strides', [1, 1])
     pads = node.attrs.get('pads', [0, 0, 0, 0])
-
     layer = myf("Pooling", node_name, [input_name], [output_name], pooling_param=dict(pool=pool_type,
                                                                                       kernel_h=kernel_shape[0],
                                                                                       kernel_w=kernel_shape[1],
@@ -272,7 +275,6 @@ def _convert_pool(node, graph, err):
                                                                                       pad_w=pads[1]))
     graph.channel_dims[output_name] = graph.channel_dims[input_name]
     return layer
-
 
 def _convert_dropout(node, graph, err):
     node_name = node.name
@@ -296,8 +298,9 @@ def _convert_gemm(node, graph, err):
                                 "Weight tensor: {} not found in the graph initializer".format(weight_name, ))
         return
 
-    if node.attrs["broadcast"] != 1 or node.attrs["transB"] != 1:
-        return err.unsupported_op_configuration(node, "Gemm is supported only for inner_product layer")
+    
+    #if node.attrs["broadcast"] != 1 or node.attrs["transB"] != 1:
+    #   return err.unsupported_op_configuration(node, "Gemm is supported only for inner_product layer")
 
     b = None
     bias_flag = False
@@ -309,14 +312,10 @@ def _convert_gemm(node, graph, err):
     if b is not None:
         bias_flag = True
         if W.shape[0] != b.shape[0]:
-            return err.unsupported_op_configuration(node,
-                                                    "Gemm is supported only for inner_product layer")
-
+            return err.unsupported_op_configuration(node,"Gemm is supported only for inner_product layer")
     layer = myf("InnerProduct", node_name, [input_name], [output_name], num_output=W.shape[0], bias_term=bias_flag)
     graph.channel_dims[output_name] = W.shape[0]
-
     return layer
-
 
 def _convert_upsample(node, graph, err):
     factor = int(node.attrs["height_scale"])
@@ -372,7 +371,6 @@ def _convert_concat(node, graph, err):
         graph.channel_dims[output_name] = dim
     else:
         graph.channel_dims[output_name] = graph.channel_dims[input_name_list[0]]
-
     return layer
 
 
@@ -431,7 +429,9 @@ def _convert_conv_slice(node, graph, err):
     output_name = str(node.outputs[0])
     node_name = node.name
     axes = node.attrs.get('axes', [])
-    graph.channel_dims[input_name] = graph.shape_dict[input_name][1]
+    #graph.channel_dims[input_name] = graph.shape_dict[input_name][1]
+    #channels = graph.shape_dict[input_name][1]
+    #channels = graph.channel_dims[input_name]
     channels = graph.shape_dict[input_name][1]
 
     if len(axes) != 1:
@@ -475,6 +475,7 @@ _ONNX_NODE_REGISTRY = {
     "Reshape": _convert_Reshape,
     "MaxPool": _convert_pool,
     "AveragePool": _convert_pool,
+    "GlobalAveragePool": _convert_pool,
     "Dropout": _convert_dropout,
     "Gemm": _convert_gemm,
     "Upsample": _convert_upsample,

@@ -1,7 +1,5 @@
 from __future__ import print_function
-
 import sys
-
 import caffe
 from caffe.proto import caffe_pb2
 import onnx
@@ -9,7 +7,6 @@ caffe.set_mode_cpu()
 sys.path.append('../')
 from onnx2caffe._transformers import ConvAddFuser, ConstantsToInitializers
 from onnx2caffe._graph import Graph
-
 import onnx2caffe._operators as cvt
 import onnx2caffe._weightloader as wlr
 from onnx2caffe._error_utils import ErrorHandling
@@ -19,7 +16,6 @@ transformers = [
     ConstantsToInitializers(),
     ConvAddFuser(),
 ]
-
 
 def convertToCaffe(graph, prototxt_save_path, caffe_model_save_path):
     exist_edges = []
@@ -46,10 +42,11 @@ def convertToCaffe(graph, prototxt_save_path, caffe_model_save_path):
                 break
         if input_non_exist_flag:
             continue
-
-        if op_type not in cvt._ONNX_NODE_REGISTRY:
-            err.unsupported_op(node)
-            continue
+        
+        if op_type != "GlobalAveragePool":
+           if op_type not in cvt._ONNX_NODE_REGISTRY:
+              err.unsupported_op(node)
+              continue
         converter_fn = cvt._ONNX_NODE_REGISTRY[op_type]
 
         layer = converter_fn(node, graph, err)
@@ -80,9 +77,10 @@ def convertToCaffe(graph, prototxt_save_path, caffe_model_save_path):
         inputs = node.inputs
         inputs_tensor = node.input_tensors
         input_non_exist_flag = False
-        if op_type not in wlr._ONNX_NODE_REGISTRY:
-            err.unsupported_op(node)
-            continue
+        if op_type != "GlobalAveragePool":
+           if op_type not in wlr._ONNX_NODE_REGISTRY:
+              err.unsupported_op(node)
+              continue
         converter_fn = wlr._ONNX_NODE_REGISTRY[op_type]
         converter_fn(net, node, graph, err)
 
