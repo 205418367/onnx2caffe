@@ -3,7 +3,7 @@ onnx模型转caffe模型的工具
 
 ## Test
 ```
-python 
+python convertCaffe.py
 ```
 ## Reference
 * [onnx2caffe](https://github.com/MTlab/onnx2caffe.git)  
