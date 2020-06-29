@@ -2,11 +2,11 @@
 onnx模型转caffe模型的工具
 
 ## Environments
-*caffe 
+* caffe 
 ```
 git clone https://github.com/weiliu89/caffe/tree/ssd
 ```
-*onnx 
+* onnx 
 ```
 pip install onnx
 ```
