@@ -4,7 +4,6 @@ onnx模型转caffe模型的工具
 ## Environments
 * ssd-caffe 
 * onnx 
-* protobuf >= 3.7
 
 ## Test
 ```
