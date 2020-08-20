@@ -2,7 +2,7 @@
 onnx模型转caffe模型的工具
 
 ## Notification
-* upsample/resize可以用deconvolution
+* upsample/resize可以用deconvolution替代
 
 ## Environments
 * ssd-caffe 
